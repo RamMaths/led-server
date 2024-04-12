@@ -17,8 +17,14 @@ use esp_idf_svc::{
 };
 use embedded_svc::wifi::{ClientConfiguration, Configuration as wifiConfiguration};
 
-const SSID: &str = "Totalplay-93A2";
-const PASS: &str = "93A2BCE4rQ6pq32j";
+//Add your wifi credentials in the cfg.toml file
+#[toml_cfg::toml_config]
+pub struct Config {
+    #[default("")]
+    wifi_ssid: &'static str,
+    #[default("")]
+    wifi_pass: &'static str
+}
 
 fn main() -> Result<()> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
@@ -32,6 +38,8 @@ fn main() -> Result<()> {
     let sys_loop = EspSystemEventLoop::take().unwrap();
     let nvs = EspDefaultNvsPartition::take().unwrap();
 
+    let app_config: Config = CONFIG;
+
     //Wifi configuration
     let mut wifi_driver = EspWifi::new(
         peripherals.modem,
@@ -41,13 +49,11 @@ fn main() -> Result<()> {
 
     wifi_driver.set_configuration(&wifiConfiguration::Client (
         ClientConfiguration {
-            ssid: SSID.try_into().unwrap(),
-            password: PASS.try_into().unwrap(),
+            ssid: app_config.wifi_ssid.try_into().unwrap(),
+            password: app_config.wifi_pass.try_into().unwrap(),
             ..Default::default()
         }
     )).expect("Failed to set the client");
-
-    log::info!("Trying wifi with credentials: {}:{}", SSID, PASS);
 
     wifi_driver.start().unwrap();
     wifi_driver.connect().unwrap();
@@ -60,7 +66,7 @@ fn main() -> Result<()> {
     log::info!("Should be connected now with credentials: ");
 
     //Setting up the led pin
-    let pin = PinDriver::output(peripherals.pins.gpio2);
+    let pin = PinDriver::output(peripherals.pins.gpio48);
     let pin = Arc::new(Mutex::new(pin));
 
     let pin_ref = pin.clone();
